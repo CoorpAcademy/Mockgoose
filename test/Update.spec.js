@@ -111,15 +111,15 @@ describe('Mockgoose Update Tests', function () {
 
         it('should be able to overwrite items', function (done) {
             AccountModel.create({email: 'testing@testing.com', password: 'password', values: ['one', 'two']}, function (err, model) {
-                expect(model).toBeDefined();
+                expect(model).not.to.be.undefined;
                 if (model) {
                     AccountModel.update({email: 'testing@testing.com'}, {email: 'updated@testing.com'}, {overwrite: true}, function (err, result) {
-                        expect(result).toBe(1);
+                        expect(result).to.equal(1);
                         AccountModel.findOne({email: 'updated@testing.com'}, function (err, result) {
                             if (result) {
-                                expect(result.email).toBe('updated@testing.com');
-                                expect(result.password).toBeUndefined();
-                                expect(result.values.length).toBe(0);
+                                expect(result.email).to.equal('updated@testing.com');
+                                expect(result.password).to.be.undefined;
+                                expect(result.values.length).to.equal(0);
                                 done(err);
                             } else {
                                 done('Error finding models');
@@ -134,14 +134,14 @@ describe('Mockgoose Update Tests', function () {
 
         it('should have the same _id after overwriting an item', function (done) {
             AccountModel.create({email: 'testing@testing.com', password: 'password', values: ['one', 'two']}, function (err, model) {
-                expect(model).toBeDefined();
+                expect(model).not.to.be.undefined;
                 if (model) {
                     model.update({email: 'updated@testing.com'}, {overwrite: true}, function (err, result) {
-                        expect(result).toBe(1);
+                        expect(result).to.equal(1);
                         AccountModel.findOne({_id: model._id}, function (err, result) {
-                            expect(result).toBeDefined();
+                            expect(result).not.to.be.undefined;
                             if (result) {
-                                expect(result.email).toBe('updated@testing.com');
+                                expect(result.email).to.equal('updated@testing.com');
                             }
                             done(err);
                         });
