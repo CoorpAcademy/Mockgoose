@@ -12,14 +12,15 @@ module.exports = function (mongoose, throwErrors) {
         mongoose.originalCreateConnection = mongoose.createConnection;
         mongoose.originalConnect = mongoose.connect;
         mongoose.originalModel = mongoose.model;
+        mongoose.Connection.prototype.originalModel = mongoose.Connection.prototype.model;
     }
 
-    mongoose.model = function (name, schema, collection, skipInit) {
+    mongoose.model = mongoose.Connection.prototype.model = function (name, schema, collection, skipInit) {
 //        Mongoose is case sensitive!
 //        if (name) {
 //            name = name.toLowerCase();
 //        }
-        var model = mongoose.originalModel.call(mongoose, name, schema, collection, skipInit);
+        var model = this.originalModel(name, schema, collection, skipInit);
         mock(model);
         if(model.schema.options.autoIndex){
             model.ensureIndexes();
@@ -62,8 +63,8 @@ module.exports = function (mongoose, throwErrors) {
                 handleConnection(callback, connection, err);
             });
         });
-        connection.model = mongoose.model;
-        connection.models = mongoose.models;
+        // connection.model = mongoose.model;
+        // connection.models = mongoose.models;
         return connection;
     };
 
