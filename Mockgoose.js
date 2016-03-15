@@ -12,12 +12,14 @@ module.exports = function (mongoose, throwErrors) {
         mongoose.originalCreateConnection = mongoose.createConnection;
         mongoose.originalConnect = mongoose.connect;
         mongoose.originalModel = mongoose.model;
-        mongoose.Connection.prototype.originalModel = mongoose.Connection.prototype.model;
-        mongoose.Connection.prototype.originalOpen = mongoose.Connection.prototype.open;
     }
 
-    mongoose.model = mongoose.Connection.prototype.model = function (name, schema, collection, skipInit) {
-        var model = this.originalModel(name, schema, collection, skipInit);
+    mongoose.model = function (name, schema, collection, skipInit) {
+//        Mongoose is case sensitive!
+//        if (name) {
+//            name = name.toLowerCase();
+//        }
+        var model = mongoose.originalModel.call(mongoose, name, schema, collection, skipInit);
         mock(model);
         if(model.schema.options.autoIndex){
             model.ensureIndexes();
@@ -26,33 +28,42 @@ module.exports = function (mongoose, throwErrors) {
         return model;
     };
 
-    mongoose.Connection.prototype.open = function() {
-        var connection = this;
-        var args = _.slice(arguments);
-        if(_.isFunction(_.last(args))) {
-            var callback = args.pop();
-            args.push(function(err) {
-                process.nextTick(function() {
-                    handleConnection(callback, connection, err);
-                });
-            });
+    mongoose.createConnection = function (host, database, port, options, callback) {
+        if (_.isFunction(database)) {
+            callback = database;
+            database = null;
+        }
+        if (!_.isString(database) && _.isString(host)) {
+            database = host.slice(host.lastIndexOf('/') + 1);
+        }
+        if (_.isFunction(database)) {
+            callback = database;
+            options = {};
+        } else if (_.isFunction(port)) {
+            callback = port;
+            options = {};
+        } else if (_.isFunction(options)) {
+            callback = options;
+            options = {};
+        }
+        if (_.isObject(options)) {
+            if (_.isString(options.db)) {
+                database = options.db;
+            }
+            options = {};
+        }
+        if (_.isUndefined(options)) {
+            options = {};
         }
 
-        this.originalOpen.apply(this, args);
-    };
-
-    mongoose.createConnection = function () {
-        var args = _.slice(arguments);
-        if(_.isFunction(_.last(args))) {
-            var callback = args.pop();
-            args.push(function(err) {
-                process.nextTick(function() {
-                    handleConnection(callback, connection, err);
-                });
+        logger.info('Creating Mockgoose database: CreateConnection', database, ' options: ', options);
+        var connection = mongoose.originalCreateConnection.call(mongoose, database, options, function (err) {
+            process.nextTick(function() {
+                handleConnection(callback, connection, err);
             });
-        }
-
-        var connection = mongoose.originalCreateConnection.apply(mongoose, args);
+        });
+        connection.model = mongoose.model;
+        connection.models = mongoose.models;
         return connection;
     };
 
